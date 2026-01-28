@@ -14,6 +14,13 @@ import java.io.IOException;
 import java.net.URL;
 
 public class LimboKeys {
+
+    /*
+    TODO:
+     - Main Menu
+     - Additional options: more keys, settings, difficulty
+     */
+
     private final GameState state;
     private final AnimationController animator;
     private boolean clicksEnabled = false;
