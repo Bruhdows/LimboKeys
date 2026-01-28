@@ -102,7 +102,11 @@
 
         await cheerpjCreateDisplay(window.innerWidth, window.innerHeight, display);
 
-        const jarPath = window.location.pathname.replace(/\/$/, '') + '/LimboKeys-0.1.0.jar';
+        const currentPath = window.location.pathname;
+        const directory = currentPath.substring(0, currentPath.lastIndexOf('/'));
+
+        const jarPath = '/app' + directory + '/LimboKeys-0.1.0.jar';
+
         const jarPromise = cheerpjRunJar(jarPath);
 
         await waitForCanvas();
