@@ -102,10 +102,11 @@
 
         await cheerpjCreateDisplay(window.innerWidth, window.innerHeight, display);
 
-        const currentPath = window.location.pathname;
-        const directory = currentPath.substring(0, currentPath.lastIndexOf('/'));
+        const baseUrl = new URL('.', window.location.href).pathname;
+        const jarPath = '/app' + baseUrl + 'LimboKeys-0.1.0.jar';
 
-        const jarPath = '/app' + directory + '/LimboKeys-0.1.0.jar';
+        console.log('JAR path:', jarPath);
+        console.log('Will fetch from:', window.location.origin + baseUrl + 'LimboKeys-0.1.0.jar');
 
         const jarPromise = cheerpjRunJar(jarPath);
 
