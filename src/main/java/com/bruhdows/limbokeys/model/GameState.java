@@ -6,13 +6,12 @@ import java.util.*;
 import java.util.List;
 
 public class GameState {
-    private final JFrame[] frames = new JFrame[8];
     private final JLabel[] labels = new JLabel[8];
     private final Point[] positions = new Point[8];
     private final float[] keyHues = new float[8];
     private int correctKeyIndex;
     private boolean gameEnded = false;
-    
+
     private int[][] shufflePatterns = {
             {0, 1, 2, 3, 4, 5, 6, 7},
             {1, 0, 3, 2, 5, 4, 7, 6},
@@ -43,14 +42,14 @@ public class GameState {
             {1, 4, 3, 6, 5, 0, 7, 2},
             {5, 7, 1, 3, 2, 4, 0, 6}
     };
-    
+
     private final Random random = new Random();
-    
+
     public GameState() {
         shufflePatterns();
         initializeKeyHues();
     }
-    
+
     private void shufflePatterns() {
         List<int[]> patternList = new ArrayList<>(Arrays.asList(shufflePatterns));
         int[] firstPattern = patternList.remove(0);
@@ -58,49 +57,45 @@ public class GameState {
         patternList.add(0, firstPattern);
         shufflePatterns = patternList.toArray(new int[0][]);
     }
-    
+
     private void initializeKeyHues() {
         for (int i = 0; i < 8; i++) {
             keyHues[i] = random.nextFloat() * 360f;
         }
     }
-    
+
     public void setCorrectKeyIndex(int index) {
         this.correctKeyIndex = index;
     }
-    
+
     public int getCorrectKeyIndex() {
         return correctKeyIndex;
     }
-    
+
     public int generateRandomKeyIndex() {
         return random.nextInt(8);
     }
-    
-    public JFrame[] getFrames() {
-        return frames;
-    }
-    
+
     public JLabel[] getLabels() {
         return labels;
     }
-    
+
     public Point[] getPositions() {
         return positions;
     }
-    
+
     public float[] getKeyHues() {
         return keyHues;
     }
-    
+
     public int[][] getShufflePatterns() {
         return shufflePatterns;
     }
-    
+
     public boolean isGameEnded() {
         return gameEnded;
     }
-    
+
     public void setGameEnded(boolean ended) {
         this.gameEnded = ended;
     }

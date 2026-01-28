@@ -21,81 +21,8 @@ public class AnimationController {
         this.imageUtil = new ImageUtil();
     }
 
-    public void fadeInWindows(Runnable onComplete) {
-        Timer fadeTimer = new Timer(Constants.ANIMATION_TIMER_DELAY_MS, null);
-        final int[] frame = {0};
-
-        Point[] startPositions = calculateDiagonalStartPositions();
-
-        fadeTimer.addActionListener(e -> {
-            float progress = (float) frame[0] / Constants.FADE_IN_FRAMES;
-            float t = easeInOutCubic(progress);
-
-            for (int i = 0; i < 8; i++) {
-                state.getFrames()[i].setOpacity(progress);
-                int newX = (int) (startPositions[i].x + (state.getPositions()[i].x - startPositions[i].x) * t);
-                int newY = (int) (startPositions[i].y + (state.getPositions()[i].y - startPositions[i].y) * t);
-                state.getFrames()[i].setLocation(newX, newY);
-            }
-
-            frame[0]++;
-            if (frame[0] >= Constants.FADE_IN_FRAMES) {
-                fadeTimer.stop();
-                for (int i = 0; i < 8; i++) {
-                    state.getFrames()[i].setOpacity(1.0f);
-                    state.getFrames()[i].setLocation(state.getPositions()[i]);
-                }
-                if (onComplete != null) {
-                    onComplete.run();
-                }
-            }
-        });
-
-        fadeTimer.start();
-    }
-
-    private Point[] calculateDiagonalStartPositions() {
-        Point[] startPositions = new Point[8];
-
-        int[] directions = {
-                0, 1, 0, 1,
-                2, 3, 2, 3
-        };
-
-        for (int i = 0; i < 8; i++) {
-            int offsetX = 0, offsetY = 0;
-
-            switch (directions[i]) {
-                case 0:
-                    offsetX = -Constants.DIAGONAL_OFFSET;
-                    offsetY = -Constants.DIAGONAL_OFFSET;
-                    break;
-                case 1:
-                    offsetX = Constants.DIAGONAL_OFFSET;
-                    offsetY = -Constants.DIAGONAL_OFFSET;
-                    break;
-                case 2:
-                    offsetX = -Constants.DIAGONAL_OFFSET;
-                    offsetY = Constants.DIAGONAL_OFFSET;
-                    break;
-                case 3:
-                    offsetX = Constants.DIAGONAL_OFFSET;
-                    offsetY = Constants.DIAGONAL_OFFSET;
-                    break;
-            }
-
-            startPositions[i] = new Point(
-                    state.getPositions()[i].x + offsetX,
-                    state.getPositions()[i].y + offsetY
-            );
-            state.getFrames()[i].setLocation(startPositions[i]);
-        }
-
-        return startPositions;
-    }
-
     public void animateHueShift(JLabel label, Runnable onComplete) {
-        URL resource = LimboKeys.class.getResource("/images/key.png");
+        URL resource = LimboKeys.class.getResource("/key.png");
         if (resource == null) return;
 
         try {
@@ -104,12 +31,13 @@ public class AnimationController {
                     original.getScaledInstance(Constants.FRAME_SIZE, Constants.FRAME_SIZE, Image.SCALE_SMOOTH)
             );
 
+            final long startTime = System.currentTimeMillis();
+            final long duration = (long)(Constants.HUE_SHIFT_FRAMES * Constants.HUE_SHIFT_TIMER_DELAY_MS);
             Timer timer = new Timer(Constants.HUE_SHIFT_TIMER_DELAY_MS, null);
-            final int[] frame = {0};
 
             timer.addActionListener(e -> {
-                float progress = (float) frame[0] / Constants.HUE_SHIFT_FRAMES;
-
+                long elapsed = System.currentTimeMillis() - startTime;
+                float progress = Math.min(1.0f, (float)elapsed / duration);
                 float hueShift = progress <= 0.5f
                         ? progress * 2 * Constants.HUE_SHIFT_MAX_DEGREES
                         : (1 - progress) * 2 * Constants.HUE_SHIFT_MAX_DEGREES;
@@ -117,8 +45,7 @@ public class AnimationController {
                 BufferedImage shifted = imageUtil.quickHueShift(scaled, hueShift);
                 label.setIcon(new ImageIcon(shifted));
 
-                frame[0]++;
-                if (frame[0] >= Constants.HUE_SHIFT_FRAMES) {
+                if (progress >= 1.0f) {
                     timer.stop();
                     label.setIcon(new ImageIcon(scaled));
                     if (onComplete != null) {
@@ -126,7 +53,6 @@ public class AnimationController {
                     }
                 }
             });
-
             timer.start();
         } catch (IOException ex) {
             ex.printStackTrace();
@@ -154,73 +80,72 @@ public class AnimationController {
         Point[] endPositions = new Point[8];
 
         for (int i = 0; i < 8; i++) {
-            startPositions[i] = state.getFrames()[i].getLocation();
+            startPositions[i] = state.getLabels()[i].getLocation();
             endPositions[i] = state.getPositions()[targetPattern[i]];
         }
 
+        final long startTime = System.currentTimeMillis();
+        final long duration = (long)(Constants.ANIMATION_DURATION_FRAMES * Constants.ANIMATION_TIMER_DELAY_MS);
         Timer timer = new Timer(Constants.ANIMATION_TIMER_DELAY_MS, null);
-        final int[] frame = {0};
 
         timer.addActionListener(e -> {
-            float progress = (float) frame[0] / Constants.ANIMATION_DURATION_FRAMES;
+            long elapsed = System.currentTimeMillis() - startTime;
+            float progress = Math.min(1.0f, (float)elapsed / duration);
             float t = easeInOutCubic(progress);
 
             for (int i = 0; i < 8; i++) {
                 int newX = (int) (startPositions[i].x + (endPositions[i].x - startPositions[i].x) * t);
                 int newY = (int) (startPositions[i].y + (endPositions[i].y - startPositions[i].y) * t);
-                state.getFrames()[i].setLocation(newX, newY);
+                state.getLabels()[i].setLocation(newX, newY);
             }
 
-            frame[0]++;
-            if (frame[0] >= Constants.ANIMATION_DURATION_FRAMES) {
+            if (progress >= 1.0f) {
                 timer.stop();
                 for (int i = 0; i < 8; i++) {
-                    state.getFrames()[i].setLocation(endPositions[i]);
+                    state.getLabels()[i].setLocation(endPositions[i]);
                 }
                 if (onComplete != null) {
                     onComplete.run();
                 }
             }
         });
-
         timer.start();
     }
 
     public void animateToEllipse(Runnable onComplete) {
         applyRandomHues();
-
         Point[] ellipsePositions = calculateEllipsePositions();
         Point[] startPositions = new Point[8];
 
         for (int i = 0; i < 8; i++) {
-            startPositions[i] = state.getFrames()[i].getLocation();
+            startPositions[i] = state.getLabels()[i].getLocation();
         }
 
+        final long startTime = System.currentTimeMillis();
+        final long duration = (long)(Constants.ELLIPSE_ANIMATION_FRAMES * Constants.ANIMATION_TIMER_DELAY_MS);
         Timer timer = new Timer(Constants.ANIMATION_TIMER_DELAY_MS, null);
-        final int[] frame = {0};
 
         timer.addActionListener(e -> {
-            float progress = (float) frame[0] / Constants.ELLIPSE_ANIMATION_FRAMES;
+            long elapsed = System.currentTimeMillis() - startTime;
+            float progress = Math.min(1.0f, (float)elapsed / duration);
             float t = easeInOutCubic(progress);
 
             for (int i = 0; i < 8; i++) {
                 int newX = (int) (startPositions[i].x + (ellipsePositions[i].x - startPositions[i].x) * t);
                 int newY = (int) (startPositions[i].y + (ellipsePositions[i].y - startPositions[i].y) * t);
-                state.getFrames()[i].setLocation(newX, newY);
+                state.getLabels()[i].setLocation(newX, newY);
             }
 
-            frame[0]++;
-            if (frame[0] >= Constants.ELLIPSE_ANIMATION_FRAMES) {
+            if (progress >= 1.0f) {
                 timer.stop();
                 for (int i = 0; i < 8; i++) {
-                    state.getFrames()[i].setLocation(ellipsePositions[i]);
+                    state.getLabels()[i].setLocation(ellipsePositions[i]);
                 }
                 if (onComplete != null) {
                     onComplete.run();
                 }
             }
         });
-
         timer.start();
     }
 
@@ -236,6 +161,7 @@ public class AnimationController {
     }
 
     public void startEllipseSpin() {
+        final long[] lastTime = {System.currentTimeMillis()};
         Timer spinTimer = new Timer(Constants.SPIN_TIMER_DELAY_MS, null);
         final double[] angle = {0};
 
@@ -245,24 +171,26 @@ public class AnimationController {
                 return;
             }
 
-            angle[0] += Constants.SPIN_SPEED;
+            long currentTime = System.currentTimeMillis();
+            long deltaTime = currentTime - lastTime[0];
+            lastTime[0] = currentTime;
+
+            angle[0] += Constants.SPIN_SPEED * (deltaTime / 1000.0);
 
             for (int i = 0; i < 8; i++) {
                 double windowAngle = angle[0] + (i * 2 * Math.PI / 8);
                 int x = (int) (Constants.ELLIPSE_CENTER_X + Constants.ELLIPSE_RADIUS_X * Math.cos(windowAngle)) - Constants.FRAME_SIZE / 2;
                 int y = (int) (Constants.ELLIPSE_CENTER_Y + Constants.ELLIPSE_RADIUS_Y * Math.sin(windowAngle)) - Constants.FRAME_SIZE / 2;
-                state.getFrames()[i].setLocation(x, y);
+                state.getLabels()[i].setLocation(x, y);
             }
         });
-
         spinTimer.start();
     }
 
     private void applyRandomHues() {
         try {
-            URL resource = LimboKeys.class.getResource("/images/key.png");
+            URL resource = LimboKeys.class.getResource("/key.png");
             if (resource == null) return;
-
             BufferedImage original = ImageIO.read(resource);
 
             for (int i = 0; i < 8; i++) {
@@ -278,57 +206,42 @@ public class AnimationController {
     }
 
     public void flashCorrect(JLabel label) {
-        pulseFlash(label, Constants.HUE_GREEN, Constants.FLASH_DURATION_MS);
+        flashLabel(label, Constants.HUE_GREEN);
     }
 
     public void flashWrong(JLabel label) {
-        pulseFlash(label, Constants.HUE_RED, Constants.FLASH_DURATION_MS);
+        flashLabel(label, Constants.HUE_RED);
     }
 
-    private void pulseFlash(JLabel label, float hue, int durationMs) {
-        try {
-            URL resource = LimboKeys.class.getResource("/images/key.png");
-            if (resource == null) return;
+    private void flashLabel(JLabel label, float targetHue) {
+        URL resource = LimboKeys.class.getResource("/key.png");
+        if (resource == null) return;
 
+        try {
             BufferedImage original = ImageIO.read(resource);
             BufferedImage scaled = imageUtil.toBufferedImage(
                     original.getScaledInstance(Constants.FRAME_SIZE, Constants.FRAME_SIZE, Image.SCALE_SMOOTH)
             );
 
-            BufferedImage coloredVersion = imageUtil.shiftToFullSaturation(scaled, hue);
-
             Timer flashTimer = new Timer(Constants.FLASH_PULSE_SPEED_MS, null);
-            final long startTime = System.currentTimeMillis();
-            final boolean[] isColored = {true};
+            final boolean[] bright = {true};
 
             flashTimer.addActionListener(e -> {
-                long elapsed = System.currentTimeMillis() - startTime;
-
-                if (elapsed >= durationMs) {
-                    flashTimer.stop();
-                    label.setIcon(new ImageIcon(coloredVersion));
-                    label.repaint();
-                    return;
-                }
-
-                if (isColored[0]) {
-                    label.setIcon(new ImageIcon(coloredVersion));
-                } else {
-                    label.setIcon(new ImageIcon(scaled));
-                }
-                isColored[0] = !isColored[0];
-                label.repaint();
+                BufferedImage colored = imageUtil.quickHueShift(scaled, bright[0] ? targetHue : 0);
+                label.setIcon(new ImageIcon(colored));
+                bright[0] = !bright[0];
             });
-
             flashTimer.start();
+
+            Timer stopTimer = new Timer(Constants.FLASH_DURATION_MS, e -> flashTimer.stop());
+            stopTimer.setRepeats(false);
+            stopTimer.start();
         } catch (IOException ex) {
             ex.printStackTrace();
         }
     }
 
     private float easeInOutCubic(float t) {
-        return t < 0.5f
-                ? 4 * t * t * t
-                : 1 - (float) Math.pow(-2 * t + 2, 3) / 2;
+        return t < 0.5f ? 4 * t * t * t : 1 - (float) Math.pow(-2 * t + 2, 3) / 2;
     }
 }

@@ -10,20 +10,14 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.BufferedInputStream;
-import java.io.IOException;
 import java.net.URL;
 
 public class LimboKeys {
-
-    /*
-    TODO:
-     - Main Menu
-     - Additional options: more keys, settings, difficulty
-     */
-
     private final GameState state;
     private final AnimationController animator;
     private boolean clicksEnabled = false;
+    private JFrame mainFrame;
+    private JPanel gamePanel;
 
     public LimboKeys() {
         this.state = new GameState();
@@ -32,14 +26,21 @@ public class LimboKeys {
 
     public void start() {
         playMusic();
-        initializeWindows();
+        initializeWindow();
 
-        Timer delayTimer = new Timer(Constants.FADE_IN_DELAY_MS, e -> startGame());
+        Timer delayTimer = new Timer(Constants.GAME_START_DELAY_MS, e -> startGame());
         delayTimer.setRepeats(false);
         delayTimer.start();
     }
 
-    private void initializeWindows() {
+    private void initializeWindow() {
+        mainFrame = new JFrame("LimboKeys");
+        mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        gamePanel = new JPanel(null);
+        gamePanel.setBackground(new Color(15, 15, 20));
+        gamePanel.setPreferredSize(new Dimension(Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT));
+
         int x = Constants.GRID_START_X;
         int y = Constants.GRID_START_Y;
 
@@ -50,20 +51,52 @@ public class LimboKeys {
             }
 
             state.getPositions()[i] = new Point(x, y);
-            JFrame frame = createWindow(x, y, i);
-            state.getFrames()[i] = frame;
-            frame.setOpacity(0.0f);
+            JLabel keyLabel = createKeyLabel(i);
+            keyLabel.setBounds(x, y, Constants.FRAME_SIZE, Constants.FRAME_SIZE);
+            keyLabel.setOpaque(false);
+            state.getLabels()[i] = keyLabel;
+            gamePanel.add(keyLabel);
 
             x += Constants.SPACING;
         }
+
+        mainFrame.setContentPane(gamePanel);
+        mainFrame.pack();
+        mainFrame.setLocationRelativeTo(null);
+        mainFrame.setVisible(true);
+    }
+
+    private JLabel createKeyLabel(final int index) {
+        URL resource = LimboKeys.class.getResource("/key.png");
+        JLabel imageLabel = new JLabel();
+
+        if (resource != null) {
+            ImageIcon originalIcon = new ImageIcon(resource);
+            Image scaledImage = originalIcon.getImage().getScaledInstance(
+                    Constants.FRAME_SIZE, Constants.FRAME_SIZE, Image.SCALE_SMOOTH
+            );
+            imageLabel.setIcon(new ImageIcon(scaledImage));
+        } else {
+            System.out.println("File key.png not found!");
+        }
+
+        imageLabel.setHorizontalAlignment(JLabel.CENTER);
+        imageLabel.setVerticalAlignment(JLabel.CENTER);
+
+        imageLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                handleGuess(index);
+            }
+        });
+
+        return imageLabel;
     }
 
     private void startGame() {
-        animator.fadeInWindows(() -> {
-            state.setCorrectKeyIndex(state.generateRandomKeyIndex());
-            JLabel keyLabel = state.getLabels()[state.getCorrectKeyIndex()];
-            animator.animateHueShift(keyLabel, this::startShufflePhase);
-        });
+        state.setCorrectKeyIndex(state.generateRandomKeyIndex());
+        JLabel keyLabel = state.getLabels()[state.getCorrectKeyIndex()];
+        animator.animateHueShift(keyLabel, this::startShufflePhase);
     }
 
     private void startShufflePhase() {
@@ -78,10 +111,7 @@ public class LimboKeys {
     }
 
     private void handleGuess(int clickedIndex) {
-        if (!clicksEnabled) {
-            return;
-        }
-        if (state.isGameEnded()) {
+        if (!clicksEnabled || state.isGameEnded()) {
             return;
         }
 
@@ -111,63 +141,11 @@ public class LimboKeys {
                     Clip clip = AudioSystem.getClip();
                     clip.open(audioStream);
                     clip.start();
-                } else {
-                    System.out.println("song.wav not found in resources!");
                 }
-            } catch (UnsupportedAudioFileException | IOException | LineUnavailableException e) {
-                System.out.println("Error playing music: " + e.getMessage());
-                e.printStackTrace();
+            } catch (Exception e) {
+                System.out.println("Audio not available in browser mode");
             }
         }).start();
-    }
-
-    private JFrame createWindow(int x, int y, final int index) {
-        JFrame frame = new JFrame();
-
-        frame.setSize(Constants.FRAME_SIZE, Constants.FRAME_SIZE);
-        frame.setLocation(x, y);
-        frame.setAlwaysOnTop(true);
-        frame.setUndecorated(true);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setFocusableWindowState(true);
-        frame.setAutoRequestFocus(true);
-
-        URL resource = LimboKeys.class.getResource("/images/key.png");
-        if (resource != null) {
-            ImageIcon originalIcon = new ImageIcon(resource);
-            Image scaledImage = originalIcon.getImage().getScaledInstance(
-                    Constants.FRAME_SIZE, Constants.FRAME_SIZE, Image.SCALE_SMOOTH
-            );
-            ImageIcon scaledIcon = new ImageIcon(scaledImage);
-
-            JLabel imageLabel = new JLabel(scaledIcon);
-            imageLabel.setHorizontalAlignment(JLabel.CENTER);
-            imageLabel.setVerticalAlignment(JLabel.CENTER);
-            state.getLabels()[index] = imageLabel;
-
-            MouseAdapter mouseHandler = new MouseAdapter() {
-                @Override
-                public void mousePressed(MouseEvent e) {
-                    handleGuess(index);
-                }
-
-                @Override
-                public void mouseClicked(MouseEvent e) {
-                    handleGuess(index);
-                }
-            };
-
-            imageLabel.addMouseListener(mouseHandler);
-            frame.addMouseListener(mouseHandler);
-            frame.getContentPane().addMouseListener(mouseHandler);
-
-            frame.add(imageLabel);
-        } else {
-            System.out.println("File key.png not found!");
-        }
-
-        frame.setVisible(true);
-        return frame;
     }
 
     public static void main(String[] args) {

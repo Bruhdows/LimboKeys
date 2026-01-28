@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LimboKeys</title>
+    <script src="https://cjrtnc.leaningtech.com/4.2/loader.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+        }
+
+        #container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #startBtn {
+            padding: 15px 35px;
+            font-size: 16px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        #startBtn:hover {
+            background: #5568d3;
+        }
+
+        #display {
+            width: 100%;
+            height: 100%;
+        }
+
+        #display.hidden {
+            display: none;
+        }
+
+        #display canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+    </style>
+</head>
+<body>
+<div id="container">
+    <button id="startBtn">Start Game</button>
+    <div id="display" class="hidden"></div>
+</div>
+
+<script>
+    let audio = null;
+    let audioPlayed = false;
+
+    function waitForCanvas() {
+        return new Promise((resolve) => {
+            const checkCanvas = setInterval(() => {
+                const canvas = document.querySelector('#display canvas');
+                if (canvas && canvas.width > 0 && canvas.height > 0) {
+                    clearInterval(checkCanvas);
+                    resolve();
+                }
+            }, 100);
+        });
+    }
+
+    function playAudio() {
+        if (!audioPlayed && audio) {
+            audio.play().catch(e => console.error('Audio error:', e));
+            audioPlayed = true;
+        }
+    }
+
+    document.getElementById('startBtn').addEventListener('click', async function() {
+        const btn = this;
+        btn.textContent = 'Loading...';
+        btn.disabled = true;
+
+        audio = new Audio('song.wav');
+        audio.volume = 0.6;
+
+        await cheerpjInit({version: 17});
+
+        const display = document.getElementById('display');
+        btn.style.display = 'none';
+        display.classList.remove('hidden');
+
+        await cheerpjCreateDisplay(window.innerWidth, window.innerHeight, display);
+
+        const jarPromise = cheerpjRunJar("/app/LimboKeys-0.1.0.jar");
+
+        await waitForCanvas();
+        playAudio();
+
+        await jarPromise;
+    });
+</script>
+</body>
+</html>
